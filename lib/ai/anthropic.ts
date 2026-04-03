@@ -48,7 +48,7 @@ Return ONLY a raw JSON object, no backticks, no markdown wrapper, starting with 
 {"synthesis": "## Your Title Here\\n\\nIntro paragraph...\\n\\n## Key Points\\n- Point one\\n- Point two\\n\\n## Conclusion\\nFinal take.", "agreementScore": <0-100>}`
 
   const result = await client.chat.completions.create({
-    model: 'llama-3.1-8b-instant',
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   })
@@ -93,7 +93,7 @@ Return ONLY a raw JSON object, no backticks, no extra text:
 {"best": "<one of the modelIds above>", "reasoning": "<2-3 sentences on why that model won>", "scores": [{"modelId": "<exact modelId>", "score": <1-10>, "critique": "<one punchy sentence>"}, {"modelId": "<exact modelId>", "score": <1-10>, "critique": "<one punchy sentence>"}, {"modelId": "<exact modelId>", "score": <1-10>, "critique": "<one punchy sentence>"}]}`
 
   const result = await client.chat.completions.create({
-    model: 'llama-3.1-8b-instant',
+    model: 'llama-3.3-70b-versatile',
     max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   })
