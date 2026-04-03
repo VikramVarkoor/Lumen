@@ -2,6 +2,8 @@
 
 **Multi-provider AI aggregator** — Claude, GPT-4o, and Gemini answer in parallel, then a judge model synthesizes the best response.
 
+**[→ Live Demo](https://lumen-ten-psi.vercel.app/dashboard)**
+
 ---
 
 ## Features
