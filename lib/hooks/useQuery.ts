@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react'
 import { useAuth } from './useAuth'
-import type { ModelId, AgreementScore, StreamChunk } from '@/types'
+import type { ModelId, AgreementScore, StreamChunk, JudgeVerdict } from '@/types'
 
 export interface ModelState {
   content: string
@@ -17,6 +17,7 @@ export interface QueryState {
   synthesis: string
   isSynthesizing: boolean
   agreementScore: AgreementScore | null
+  verdict: JudgeVerdict | null
   queryId: string | null
   error: string | null
 }
@@ -34,6 +35,7 @@ export function useQuery() {
     synthesis: '',
     isSynthesizing: false,
     agreementScore: null,
+    verdict: null,
     queryId: null,
     error: null,
   })
@@ -45,7 +47,6 @@ export function useQuery() {
       if (abortRef.current) abortRef.current.abort()
       abortRef.current = new AbortController()
 
-      // Init state
       const initModelStates = {} as Record<ModelId, ModelState>
       selectedModels.forEach((m) => {
         initModelStates[m] = { ...initialModelState(), isStreaming: true }
@@ -57,6 +58,7 @@ export function useQuery() {
         synthesis: '',
         isSynthesizing: false,
         agreementScore: null,
+        verdict: null,
         queryId: null,
         error: null,
       })
@@ -145,7 +147,6 @@ export function useQuery() {
         break
 
       case 'agreement':
-        // Mark all models done streaming
         setState((s) => {
           const updated = { ...s.modelStates }
           Object.keys(updated).forEach((k) => {
@@ -168,6 +169,13 @@ export function useQuery() {
         }))
         break
 
+      case 'verdict':
+        setState((s) => ({
+          ...s,
+          verdict: chunk.verdict ?? null,
+        }))
+        break
+
       case 'done':
         setState((s) => ({
           ...s,
@@ -186,6 +194,7 @@ export function useQuery() {
       synthesis: '',
       isSynthesizing: false,
       agreementScore: null,
+      verdict: null,
       queryId: null,
       error: null,
     })

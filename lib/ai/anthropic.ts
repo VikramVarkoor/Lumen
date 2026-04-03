@@ -67,3 +67,65 @@ Return ONLY a raw JSON object, no backticks, no markdown wrapper, starting with 
     return { synthesis: text, agreementScore: 50 }
   }
 }
+
+export async function getJudgeVerdict(
+  query: string,
+  responses: { modelId: string; modelName: string; content: string }[]
+): Promise<{
+  best: string
+  reasoning: string
+  scores: { modelId: string; score: number; critique: string }[]
+}> {
+  const validIds = responses.map(r => r.modelId)
+
+  const prompt = `You are a strict but fair AI judge. Three AI models answered the same query. Evaluate each response and pick the best one.
+
+Query: "${query}"
+
+Responses:
+${responses.map((r) => `=== ${r.modelName} (modelId: ${r.modelId}) ===\n${r.content}`).join('\n\n')}
+
+Score each model 1-10. Consider: accuracy, depth, clarity, and usefulness.
+
+CRITICAL: You MUST use these exact modelId values in your response: ${validIds.join(', ')}
+
+Return ONLY a raw JSON object, no backticks, no extra text:
+{"best": "<one of the modelIds above>", "reasoning": "<2-3 sentences on why that model won>", "scores": [{"modelId": "<exact modelId>", "score": <1-10>, "critique": "<one punchy sentence>"}, {"modelId": "<exact modelId>", "score": <1-10>, "critique": "<one punchy sentence>"}, {"modelId": "<exact modelId>", "score": <1-10>, "critique": "<one punchy sentence>"}]}`
+
+  const result = await client.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    max_tokens: 1024,
+    messages: [{ role: 'user', content: prompt }],
+  })
+
+  const text = result.choices[0]?.message?.content || ''
+
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) throw new Error('No JSON')
+    const parsed = JSON.parse(jsonMatch[0])
+
+    // Force valid modelIds in case the judge hallucinated
+    parsed.scores = (parsed.scores || []).map((s: any, i: number) => ({
+      ...s,
+      modelId: validIds.includes(s.modelId) ? s.modelId : validIds[i] || validIds[0],
+    }))
+
+    // Ensure all 3 models are scored
+    validIds.forEach((id, i) => {
+      if (!parsed.scores.find((s: any) => s.modelId === id)) {
+        parsed.scores.push({ modelId: id, score: 7, critique: 'No critique available.' })
+      }
+    })
+
+    if (!validIds.includes(parsed.best)) parsed.best = validIds[0]
+
+    return parsed
+  } catch {
+    return {
+      best: responses[0].modelId,
+      reasoning: 'Could not determine verdict.',
+      scores: responses.map(r => ({ modelId: r.modelId, score: 7, critique: 'No critique available.' }))
+    }
+  }
+}

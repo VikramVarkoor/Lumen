@@ -29,11 +29,11 @@ export const MODELS: ModelConfig[] = [
     accentColor: '#A8D5CC',
   },
   {
-  id: 'gemini-2.0-flash',
-  provider: 'google',
-  name: 'Kimi K2',
-  color: '#7B9FE0',
-  accentColor: '#B0C9F5',
+    id: 'gemini-2.0-flash',
+    provider: 'google',
+    name: 'Kimi K2',
+    color: '#7B9FE0',
+    accentColor: '#B0C9F5',
   },
 ]
 
@@ -46,12 +46,22 @@ export interface ModelResponse {
 }
 
 export interface AgreementScore {
-  score: number // 0-100
+  score: number
   label: 'low' | 'medium' | 'high'
   breakdown: {
     modelA: ModelId
     modelB: ModelId
     similarity: number
+  }[]
+}
+
+export interface JudgeVerdict {
+  best: ModelId
+  reasoning: string
+  scores: {
+    modelId: ModelId
+    score: number
+    critique: string
   }[]
 }
 
@@ -62,15 +72,17 @@ export interface QueryResult {
   responses: ModelResponse[]
   synthesis: string
   agreementScore: AgreementScore
+  verdict?: JudgeVerdict
   createdAt: string
   userId?: string
 }
 
 export interface StreamChunk {
-  type: 'response_chunk' | 'synthesis_chunk' | 'agreement' | 'error' | 'done'
+  type: 'response_chunk' | 'synthesis_chunk' | 'agreement' | 'verdict' | 'error' | 'done'
   modelId?: ModelId
   content?: string
   agreement?: AgreementScore
+  verdict?: JudgeVerdict
   queryId?: string
 }
 

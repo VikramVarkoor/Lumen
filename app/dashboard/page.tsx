@@ -6,6 +6,7 @@ import { QueryInput } from '@/components/query/QueryInput'
 import { ModelCard } from '@/components/results/ModelCard'
 import { SynthesisPanel } from '@/components/results/SynthesisPanel'
 import { DivergenceCard } from '@/components/results/DivergenceCard'
+import { VerdictPanel } from '@/components/results/VerdictPanel'
 import type { ModelId } from '@/types'
 
 const PROMPT_TEMPLATES = [
@@ -32,6 +33,7 @@ export default function DashboardPage() {
     synthesis,
     isSynthesizing,
     agreementScore,
+    verdict,
     queryId,
     error,
     runQuery,
@@ -40,9 +42,7 @@ export default function DashboardPage() {
 
   const hasResults = Object.keys(modelStates).length > 0
   const synthScrolled = useRef(false)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Smooth scroll to synthesis once
   useEffect(() => {
     if (synthesis && synthesis.length > 80 && !synthScrolled.current) {
       synthScrolled.current = true
@@ -55,7 +55,6 @@ export default function DashboardPage() {
     if (isLoading) synthScrolled.current = false
   }, [isLoading])
 
-  // Cmd+K to focus input
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault()
@@ -74,9 +73,7 @@ export default function DashboardPage() {
 
   return (
     <main className="dashboard">
-      {/* ── Hero ── */}
       <div className={`dashboard-hero ${hasResults ? 'hero-compact' : ''}`}>
-        {/* Ambient orbs */}
         {!hasResults && (
           <>
             <div className="hero-orb hero-orb-1" />
@@ -87,7 +84,6 @@ export default function DashboardPage() {
 
         {!hasResults && (
           <div className="hero-text animate-slide-up">
-            {/* Floating model logos */}
             <div className="model-logos">
               {MODEL_LOGOS.map((m) => (
                 <div className="model-logo-item" key={m.label}>
@@ -106,7 +102,6 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Connector line */}
             <div className="hero-connector">
               <div className="connector-line" />
               <div className="connector-dot" />
@@ -171,6 +166,12 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {verdict && !isLoading && (
+            <div className="animate-slide-up-delay-1">
+              <VerdictPanel verdict={verdict} />
+            </div>
+          )}
+
           <div className={synthesis || isSynthesizing ? 'animate-slide-up-delay-2' : ''}>
             <SynthesisPanel
               synthesis={synthesis}
@@ -182,7 +183,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Cmd+K hint */}
       <div className="kbd-hint">
         <kbd>⌘</kbd><kbd>K</kbd> focus
       </div>

@@ -1,20 +1,17 @@
 import { NextRequest } from 'next/server'
-import { streamClaude } from '@/lib/ai/anthropic'
+import { streamClaude, judgeWithClaude, getJudgeVerdict } from '@/lib/ai/anthropic'
 import { streamOpenAI } from '@/lib/ai/openai'
 import { streamGemini } from '@/lib/ai/gemini'
-import { judgeWithClaude } from '@/lib/ai/anthropic'
 import { computeAgreementScore } from '@/lib/utils/agreement'
 import { saveQueryResult } from '@/lib/db/supabase'
 import { supabase } from '@/lib/db/supabase'
 import type { ModelId, ModelResponse, StreamChunk } from '@/types'
+import { MODELS } from '@/types'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
 
-const MODEL_STREAMERS: Record<
-  ModelId,
-  (prompt: string, onChunk: (t: string) => void) => Promise<{ content: string; durationMs: number }>
-> = {
+const MODEL_STREAMERS: Record<ModelId, (prompt: string, onChunk: (t: string) => void) => Promise<{ content: string; durationMs: number }>> = {
   'claude-sonnet-4-20250514': streamClaude,
   'gpt-4o': streamOpenAI,
   'gemini-2.0-flash': streamGemini,
@@ -34,7 +31,6 @@ export async function POST(req: NextRequest) {
     return new Response(JSON.stringify({ error: 'Invalid request' }), { status: 400 })
   }
 
-  // Get user from auth header
   const authHeader = req.headers.get('authorization')
   let userId: string | undefined
   if (authHeader) {
@@ -51,7 +47,6 @@ export async function POST(req: NextRequest) {
 
       const responses: ModelResponse[] = []
 
-      // Stream all selected models IN PARALLEL
       await Promise.all(
         selectedModels.map(async (modelId) => {
           try {
@@ -72,37 +67,36 @@ export async function POST(req: NextRequest) {
         })
       )
 
-      // Compute agreement score from raw text similarity
       const agreementScore = computeAgreementScore(responses)
       send({ type: 'agreement', agreement: agreementScore })
 
-      // Judge model synthesizes the best answer
+      const validResponses = responses.filter((r) => !r.error && r.content)
+
       try {
-        const validResponses = responses.filter((r) => !r.error && r.content)
-        let synthesis = ''
+        const [synthesisResult, verdictResult] = await Promise.all([
+          judgeWithClaude(query, validResponses),
+          validResponses.length >= 2
+            ? getJudgeVerdict(
+                query,
+                validResponses.map(r => ({
+                  modelId: r.modelId,
+                  modelName: MODELS.find(m => m.id === r.modelId)?.name || r.modelId,
+                  content: r.content,
+                }))
+              )
+            : Promise.resolve(null),
+        ])
 
-        if (validResponses.length === 1) {
-          // Only one model responded — stream that directly as synthesis
-          synthesis = validResponses[0].content
-          for (let i = 0; i < synthesis.length; i += 20) {
-            send({ type: 'synthesis_chunk', content: synthesis.slice(i, i + 20) })
-          }
-        } else if (validResponses.length > 1) {
-          // Real synthesis with judge model
-          let fullSynthesis = ''
-          const result = await judgeWithClaude(query, validResponses)
-
-          // Stream synthesis token by token
-          for (let i = 0; i < result.synthesis.length; i += 15) {
-            const chunk = result.synthesis.slice(i, i + 15)
-            fullSynthesis += chunk
-            send({ type: 'synthesis_chunk', content: chunk })
-            await new Promise((r) => setTimeout(r, 8))
-          }
-          synthesis = result.synthesis
+        const synthesis = synthesisResult.synthesis
+        for (let i = 0; i < synthesis.length; i += 15) {
+          send({ type: 'synthesis_chunk', content: synthesis.slice(i, i + 15) })
+          await new Promise((r) => setTimeout(r, 8))
         }
 
-        // Save to Supabase
+        if (verdictResult) {
+          send({ type: 'verdict', verdict: verdictResult as any })
+        }
+
         const queryId = await saveQueryResult({
           query,
           selectedModels,
