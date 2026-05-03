@@ -1,7 +1,7 @@
 import Groq from 'groq-sdk'
 
 const client = new Groq({
-  apiKey: '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',
+  apiKey: process.env.GROQ_API_KEY || '',
 })
 
 export async function streamOpenAI(
