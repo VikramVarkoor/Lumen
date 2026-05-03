@@ -12,7 +12,7 @@ export async function streamGemini(
   let content = ''
 
   const stream = await client.chat.completions.create({
-    model: 'moonshotai/kimi-k2-instruct-0905',
+    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
     max_tokens: 2048,
     stream: true,
     messages: [{ role: 'user', content: prompt }],
