@@ -31,7 +31,7 @@ export const MODELS: ModelConfig[] = [
   {
     id: 'gemini-2.0-flash',
     provider: 'google',
-    name: 'Kimi K2',
+    name: 'GPT-OSS 120B',
     color: '#7B9FE0',
     accentColor: '#B0C9F5',
   },
