@@ -23,7 +23,7 @@ const ALL_MODELS: ModelId[] = ['claude-sonnet-4-20250514', 'gpt-4o', 'gemini-2.0
 const MODEL_LOGOS = [
   { label: 'Llama', color: '#D4956A', borderColor: '#D4956A44' },
   { label: 'Qwen', color: '#74AA9C', borderColor: '#74AA9C44' },
-  { label: 'Kimi', color: '#7B9FE0', borderColor: '#7B9FE044' },
+  { label: 'GPT-OSS', color: '#7B9FE0', borderColor: '#7B9FE044' },
 ]
 
 export default function DashboardPage() {
